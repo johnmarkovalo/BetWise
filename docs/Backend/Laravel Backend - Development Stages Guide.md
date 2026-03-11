@@ -36,8 +36,8 @@ This guide breaks down backend development into discrete stages with clear deliv
 **Tasks:**
 1. Install Laravel 11
 ```bash
-composer create-project laravel/laravel betting-backend
-cd betting-backend
+composer create-project laravel/laravel backend
+cd backend
 php artisan --version  # Should show Laravel 11.x
 ```
 
@@ -84,7 +84,7 @@ git commit -m "Initial Laravel 11 setup"
 - [ ] Laravel 11 installed
 - [ ] Dependencies configured
 - [ ] Environment files set up
-- [ ] Git repository initialized
+- [ ] `backend/` directory created in monorepo
 
 ---
 

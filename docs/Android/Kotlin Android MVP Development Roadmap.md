@@ -26,12 +26,12 @@
 **0.2 Create GitHub Repository**
 
 ```bash
-# Repository structure
-betting-executor-android/
-├── README.md
-├── .gitignore
-├── LICENSE
-└── (app will be created in Stage 1)
+# Monorepo structure (Android lives under android/)
+BetWise/
+└── android/
+    ├── README.md
+    ├── .gitignore
+    └── (app will be created in Stage 1)
 ```
 
 **0.3 Repository README Template**
@@ -58,7 +58,7 @@ Automated betting execution engine using AccessibilityService.
 
 ### Deliverables:
 
-- ✅ GitHub repository created
+- ✅ `android/` directory created in monorepo
 - ✅ Android Studio installed and configured
 - ✅ Development machine ready
 

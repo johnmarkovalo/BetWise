@@ -70,7 +70,7 @@ This roadmap provides a high-level view of all backend development phases, organ
 - ✅ Redis operational (3 separate DBs: cache, queue, session)
 - ✅ Horizon dashboard monitoring queues
 - ✅ All Eloquent models with relationships
-- ✅ Git repository with CI/CD pipeline
+- ✅ `backend/` directory in monorepo with CI/CD pipeline
 
 **Reference:** [[../Design Document/3. Database Schema]]
 
@@ -461,7 +461,7 @@ Week 7:
 **Day 1:**
 1. Read [[../Design Document/1. System Overview]]
 2. Read [[../Design Document/2. Architecture#Backend Architecture]]
-3. Clone repository and run `composer install`
+3. Navigate to `backend/` and run `composer install`
 4. Set up local PostgreSQL and Redis
 
 **Week 1:**

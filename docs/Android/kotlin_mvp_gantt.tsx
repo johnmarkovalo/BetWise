@@ -16,7 +16,7 @@ const KotlinMVPGantt = () => {
       color: "bg-gray-500",
       tasks: [
         { name: "Install Android Studio & tools", hours: 0.5, week: 1, day: "Mon" },
-        { name: "Create GitHub repository", hours: 0.5, week: 1, day: "Mon" },
+        { name: "Setup android/ directory in monorepo", hours: 0.5, week: 1, day: "Mon" },
         { name: "Setup development environment", hours: 1, week: 1, day: "Mon" }
       ]
     },

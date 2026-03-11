@@ -2,7 +2,7 @@
 
 **Project:** Betting Executor Android App  
 **Schedule:** 3 hours/day, Mon-Fri, 5 weeks total  
-**Repository:** `betting-executor-android`
+**Repository:** `BetWise` (monorepo — Android code lives in `android/`)
 
 ---
 
@@ -34,7 +34,7 @@ Each stage is a complete, testable unit of work that builds on the previous stag
 ## 📋 STAGE 0: Prerequisites & Setup
 
 **Duration:** 2 hours (Monday Week 1, first session)  
-**Goal:** Development environment ready, repository created
+**Goal:** Development environment ready, project directory created
 
 ### Context
 
@@ -46,16 +46,16 @@ This is the foundation. No coding yet, just setting up tools and workspace.
 2. Install JDK 17 or 18
 3. Install Android SDK (API 26 minimum, API 34 target)
 4. Install Git
-5. Create GitHub repository named `betting-executor-android`
-6. Initialize with README.md, .gitignore (Android template), and LICENSE
+5. Create the `android/` directory in the BetWise monorepo root
+6. Initialize with README.md and .gitignore (Android template)
 
 ### Files to Create
 
 ```
-betting-executor-android/
-├── README.md
-├── .gitignore
-└── LICENSE
+BetWise/
+└── android/
+    ├── README.md
+    └── .gitignore
 ```
 
 ### README.md Template
@@ -90,7 +90,7 @@ MIT
 
 - [ ] Android Studio opens without errors
 - [ ] Can create new Android project
-- [ ] GitHub repository created and cloned locally
+- [ ] `android/` directory created in the monorepo
 - [ ] Git commands work (git status, git commit)
 
 ### Definition of Done
