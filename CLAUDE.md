@@ -20,7 +20,8 @@ BetWise is a centralized planning, distributed execution system. A backend serve
 
 ### Mobile (Android)
 - **Kotlin Native**, min API 26 (Android 8.0)
-- AccessibilityService for system-level UI automation
+- **WebView** loads betting provider websites (no native provider apps)
+- **AccessibilityService + GestureExecutor** for touch injection on WebView (no JS injection or DOM manipulation)
 - OkHttp WebSocket client, Hilt DI
 - MVVM + Clean Architecture
 
@@ -41,7 +42,8 @@ BetWise/                    # Monorepo root
 
 - **UUID primary keys** throughout all tables
 - **State machine for rounds:** `preparing → prepared → executing → completed` (with abort paths)
-- **Provider adapter pattern** for extensible betting provider support
+- **WebView-based execution** — provider websites loaded in embedded WebView, interacted with via real touch gestures
+- **Provider adapter pattern** for extensible betting provider support (each adapter knows the provider's web UI layout)
 - **Commission-weighted allocation:** higher commission = higher bet, with ±15% randomization and monotonic constraints
 - **HMAC-signed WebSocket messages** for integrity
 - **Seeded randomness** for reproducible allocations

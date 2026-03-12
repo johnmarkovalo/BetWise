@@ -63,12 +63,13 @@ BetWise/
 ```markdown
 # Betting Executor - Android
 
-Automated betting execution engine using AccessibilityService.
+Automated betting execution engine using WebView + AccessibilityService.
 
 ## Requirements
 - Android 8.0 (API 26) or higher
 - Accessibility Service permission
 - Battery optimization disabled
+- WebView support (Android System WebView)
 
 ## Status
 🚧 In Development - Stage 0 Complete
@@ -636,12 +637,12 @@ class MainViewModel @Inject constructor(
 
 ## 🔧 STAGE 3: AccessibilityService Implementation
 
-**Duration:** 5 hours (Thursday-Friday Week 1)  
+**Duration:** 5 hours (Thursday-Friday Week 1)
 **Goal:** AccessibilityService running and detectable
 
 ### Context
 
-This is the core technology that enables touch injection. The AccessibilityService gives our app permission to interact with other apps on the device.
+This is the core technology that enables touch injection. The AccessibilityService gives our app permission to inject touch gestures onto the WebView that displays the betting provider's website. All interaction with the provider happens through real touch events — no JavaScript injection or DOM manipulation.
 
 ### Prerequisites
 
@@ -738,7 +739,7 @@ Create the `xml` folder if it doesn't exist: `app/src/main/res/xml/`
 
 ```xml
 <string name="accessibility_service_description">
-    Allows the app to automate betting operations by interacting with betting apps. 
+    Allows the app to automate betting operations by interacting with the embedded WebView.
     This service can read screen content and perform touch gestures on your behalf.
 </string>
 ```
@@ -874,7 +875,7 @@ fun checkServiceStatus() {
 
 ### Context
 
-Now that AccessibilityService is running, implement gesture injection. This proves we can tap anywhere on the screen programmatically.
+Now that AccessibilityService is running, implement gesture injection. This proves we can tap anywhere on the screen — specifically on the WebView surface where the betting provider's website is rendered.
 
 ### Prerequisites
 

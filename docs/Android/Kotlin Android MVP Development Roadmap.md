@@ -1,6 +1,6 @@
 ## Betting Execution Engine - Stage-by-Stage Implementation
 
-**Goal:** Build a production-ready Android app that executes bets via AccessibilityService
+**Goal:** Build a production-ready Android app that executes bets via WebView + AccessibilityService
 
 **Timeline:** 10 stages, ~3 weeks total for MVP
 
@@ -39,7 +39,7 @@ BetWise/
 ```markdown
 # Betting Executor - Android
 
-Automated betting execution engine using AccessibilityService.
+Automated betting execution engine using WebView + AccessibilityService.
 
 ## Requirements
 - Android 8.0 (API 26) or higher
@@ -777,7 +777,7 @@ class BettingAccessibilityService : AccessibilityService() {
 <resources>
     <string name="app_name">Betting Executor</string>
     <string name="accessibility_service_description">
-        Allows the app to automate betting operations by interacting with betting apps. 
+        Allows the app to automate betting operations by interacting with the embedded WebView. 
         This service can read screen content and perform touch gestures on your behalf.
     </string>
 </resources>

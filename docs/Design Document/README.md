@@ -238,6 +238,7 @@ Use these documents during implementation:
 
 **Week 1 (Foundation):**
 - [ ] Read [[2. Architecture#Mobile Architecture]]
+- [ ] Read [[2. Architecture#WebView Container]]
 - [ ] Read [[2. Architecture#AccessibilityService]]
 
 **Week 2 (Core Features):**

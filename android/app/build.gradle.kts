@@ -63,8 +63,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     // Hilt for DI
-    implementation("com.google.dagger:hilt-android:2.48")
-    kapt("com.google.dagger:hilt-compiler:2.48")
+    implementation("com.google.dagger:hilt-android:2.51.1")
+    kapt("com.google.dagger:hilt-compiler:2.51.1")
 
     // OkHttp for WebSocket
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
