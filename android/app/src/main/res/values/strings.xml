@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Betting Executor</string>
+    <string name="accessibility_service_description">
+        Allows the app to automate betting operations by interacting with the embedded WebView.
+        This service can read screen content and perform touch gestures on your behalf.
+    </string>
 </resources>

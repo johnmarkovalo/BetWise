@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.betting.executor.presentation.service.BettingAccessibilityService
+import com.betting.executor.util.AccessibilityUtils
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -35,8 +37,8 @@ class MainViewModel @Inject constructor(
 
     fun checkServiceStatus() {
         viewModelScope.launch {
-            // TODO: Implement actual check in Stage 3
-            val isRunning = false
+            val isRunning = AccessibilityUtils.isAccessibilityServiceEnabled(getApplication()) &&
+                    BettingAccessibilityService.isRunning()
             _serviceStatus.emit(isRunning)
             _testButtonEnabled.emit(isRunning)
 
