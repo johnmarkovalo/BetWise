@@ -6,7 +6,7 @@ BetWise is a centralized planning, distributed execution system. A backend serve
 
 **Status:** Documentation-complete, ready for implementation. No source code yet — this repo contains design specs only.
 
-**Monorepo structure:** Both the Laravel backend and Kotlin Android app live in this single repository under `backend/` and `android/` directories respectively.
+**Monorepo structure:** Both the Laravel backend and Kotlin Android app live in this single repository under `betwise-api/` and `android/` directories respectively.
 
 ## Tech Stack
 
@@ -29,7 +29,7 @@ BetWise is a centralized planning, distributed execution system. A backend serve
 
 ```
 BetWise/                    # Monorepo root
-├── backend/                # Laravel 11 backend (PHP 8.3)
+├── betwise-api/            # Laravel 11 backend (PHP 8.3)
 ├── android/                # Kotlin Android app
 ├── docs/
 │   ├── Design Document/    # Core system design (schema, API, architecture, algorithms)
