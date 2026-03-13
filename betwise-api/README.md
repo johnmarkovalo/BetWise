@@ -46,6 +46,8 @@ The app will be available at `http://localhost:8080`.
 | `bw-reverb` | Laravel Reverb WebSocket server | `8081` |
 | `bw-queue` | Queue worker | — |
 | `bw-db` | MariaDB 11 database | `3306` |
+| `bw-redis` | Redis cache & queue backend | `6379` |
+| `bw-adminer` | Adminer database UI | `8082` |
 
 ## Real-time (Reverb)
 
