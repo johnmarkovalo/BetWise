@@ -52,8 +52,27 @@ class MainViewModel @Inject constructor(
 
     fun testRandomTouch() {
         viewModelScope.launch {
-            emitLog("Test touch triggered (not implemented yet)")
-            // TODO: Implement in Stage 4
+            emitLog("Testing random touch...")
+
+            val service = BettingAccessibilityService.getInstance()
+            if (service == null) {
+                emitLog("ERROR: Accessibility service not available")
+                return@launch
+            }
+
+            val executor = service.getGestureExecutor()
+            if (executor == null) {
+                emitLog("ERROR: GestureExecutor not initialized")
+                return@launch
+            }
+
+            val result = executor.performRandomTouch()
+
+            result.onSuccess { point ->
+                emitLog("Touch successful at (${point.x}, ${point.y})")
+            }.onFailure { error ->
+                emitLog("Touch failed: ${error.message}")
+            }
         }
     }
 

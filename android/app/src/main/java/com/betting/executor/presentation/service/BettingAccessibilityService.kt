@@ -3,6 +3,7 @@ package com.betting.executor.presentation.service
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.view.accessibility.AccessibilityEvent
+import com.betting.executor.domain.executor.GestureExecutor
 import timber.log.Timber
 
 class BettingAccessibilityService : AccessibilityService() {
@@ -16,9 +17,14 @@ class BettingAccessibilityService : AccessibilityService() {
         fun isRunning(): Boolean = instance != null
     }
 
+    private var gestureExecutor: GestureExecutor? = null
+
+    fun getGestureExecutor(): GestureExecutor? = gestureExecutor
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        gestureExecutor = GestureExecutor(this)
 
         // Configure service
         serviceInfo = serviceInfo.apply {
@@ -53,6 +59,7 @@ class BettingAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        gestureExecutor = null
         instance = null
         Timber.d("AccessibilityService destroyed")
     }
