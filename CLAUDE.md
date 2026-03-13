@@ -11,7 +11,7 @@ BetWise is a centralized planning, distributed execution system. A backend serve
 ## Tech Stack
 
 ### Backend
-- **Laravel 11** (PHP 8.3) with PostgreSQL 16, Redis 7
+- **Laravel 12** (PHP 8.4) with PostgreSQL 16, Redis 7
 - **Laravel Reverb** for WebSocket real-time communication
 - **Laravel Horizon** for queue monitoring
 - **Filament 3** for admin panel
@@ -29,7 +29,7 @@ BetWise is a centralized planning, distributed execution system. A backend serve
 
 ```
 BetWise/                    # Monorepo root
-├── betwise-api/            # Laravel 11 backend (PHP 8.3)
+├── betwise-api/            # Laravel 12 backend (PHP 8.4)
 ├── android/                # Kotlin Android app
 ├── docs/
 │   ├── Design Document/    # Core system design (schema, API, architecture, algorithms)
@@ -64,7 +64,7 @@ BetWise/                    # Monorepo root
 
 - All implementation must follow the design document specifications in `docs/Design Document/`
 - Service classes for business logic, repository pattern for data access
-- Type-hinted PHP 8.3 with Eloquent ORM
+- Type-hinted PHP 8.4 with Eloquent ORM
 - Kotlin coroutines for async, StateFlow/LiveData for state
 - Target 80%+ code test coverage
 - Every feature should be audit-logged and observable
