@@ -1,6 +1,6 @@
 # BetWise API — Backend Implementation Plan
 
-**Last Updated:** 2026-03-13
+**Last Updated:** 2026-03-20
 **Stack:** Laravel 12, PHP 8.4, PostgreSQL 16, Redis 7, Reverb
 **Repo:** `betwise-api/`
 
@@ -8,11 +8,11 @@
 
 ## Current Status
 
-Infrastructure scaffolding is complete. Phase 1 is partially done.
+Phase 1 (Foundation) is complete. Phase 2 is next.
 
 ---
 
-## Phase 1: Foundation ✅ Partial
+## Phase 1: Foundation ✅ Complete
 
 ### Done
 - [x] Laravel 12 project bootstrapped
@@ -26,12 +26,12 @@ Infrastructure scaffolding is complete. Phase 1 is partially done.
 - [x] Docker env vars split: PHP-internal (`REVERB_HOST`) vs browser-facing (`VITE_REVERB_HOST`)
 - [x] `.env.example` hardened with correct Docker defaults
 - [x] README updated with Reverb setup guide and debugging notes
-
-### Remaining
-- [ ] Create all 14 migrations: `teams`, `accounts`, `capitals`, `devices`, `matchups`, `matchup_teams`, `rounds`, `allocations`, `device_ips`, `ip_usage_logs`, `ip_conflict_rules`, `proxy_pool`, `audit_logs` (monthly partitioned), `telemetry`
-- [ ] Create all Eloquent models with UUID PKs, relationships, scopes, and casts
-- [ ] Configure Laravel Horizon (`critical`, `default`, `low` queues)
-- [ ] Factories and seeders for all models
+- [x] All 14 migrations: `teams`, `accounts`, `capitals`, `devices`, `matchups`, `matchup_teams`, `rounds`, `allocations`, `device_ips`, `ip_usage_logs`, `ip_conflict_rules`, `proxy_pool`, `audit_logs`, `telemetry`
+- [x] All 14 Eloquent models with UUID PKs, relationships, scopes, and casts
+- [x] 11 enums in `app/Enums/` for all enum columns
+- [x] 13 model factories + `DatabaseSeeder` with FK-ordered seeding (~220 rows across 14 tables)
+- [x] Laravel Horizon configured (`critical`, `default`, `low` queues)
+- [x] Phase 1 QA test suite (`tests/Feature/Phase1FoundationTest.php`)
 
 ---
 
