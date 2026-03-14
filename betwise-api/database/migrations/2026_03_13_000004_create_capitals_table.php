@@ -21,9 +21,11 @@ return new class extends Migration
             $table->index('locked', 'idx_capitals_locked');
         });
 
-        DB::statement('ALTER TABLE capitals ADD CONSTRAINT chk_capitals_balance_non_negative CHECK (balance >= 0)');
-        DB::statement('ALTER TABLE capitals ADD CONSTRAINT chk_capitals_locked_non_negative CHECK (locked >= 0)');
-        DB::statement('ALTER TABLE capitals ADD CONSTRAINT chk_capitals_balance_gte_locked CHECK (balance >= locked)');
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE capitals ADD CONSTRAINT chk_capitals_balance_non_negative CHECK (balance >= 0)');
+            DB::statement('ALTER TABLE capitals ADD CONSTRAINT chk_capitals_locked_non_negative CHECK (locked >= 0)');
+            DB::statement('ALTER TABLE capitals ADD CONSTRAINT chk_capitals_balance_gte_locked CHECK (balance >= locked)');
+        }
     }
 
     public function down(): void

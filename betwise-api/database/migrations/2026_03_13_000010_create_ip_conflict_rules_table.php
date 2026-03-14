@@ -19,8 +19,10 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement('ALTER TABLE ip_conflict_rules ADD CONSTRAINT chk_ip_rules_max_concurrent CHECK (max_concurrent_devices > 0)');
-        DB::statement('ALTER TABLE ip_conflict_rules ADD CONSTRAINT chk_ip_rules_hourly_limit CHECK (hourly_limit > 0)');
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE ip_conflict_rules ADD CONSTRAINT chk_ip_rules_max_concurrent CHECK (max_concurrent_devices > 0)');
+            DB::statement('ALTER TABLE ip_conflict_rules ADD CONSTRAINT chk_ip_rules_hourly_limit CHECK (hourly_limit > 0)');
+        }
     }
 
     public function down(): void

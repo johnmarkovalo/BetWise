@@ -31,14 +31,14 @@ services:
     depends_on:
       - app
 
-  queue:
+  horizon:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: bw-queue
+    container_name: bw-horizon
     restart: unless-stopped
     working_dir: /var/www/html
-    command: php artisan queue:work --no-interaction
+    command: php artisan horizon --no-interaction
     volumes:
       - .:/var/www/html
     networks:

@@ -30,7 +30,9 @@ return new class extends Migration
             $table->index('health_score', 'idx_proxy_health');
         });
 
-        DB::statement('ALTER TABLE proxy_pool ADD CONSTRAINT chk_proxy_health_score CHECK (health_score >= 0 AND health_score <= 1)');
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE proxy_pool ADD CONSTRAINT chk_proxy_health_score CHECK (health_score >= 0 AND health_score <= 1)');
+        }
     }
 
     public function down(): void
