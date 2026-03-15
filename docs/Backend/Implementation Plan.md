@@ -35,16 +35,17 @@ Phase 1 (Foundation) is complete. Phase 2 is next.
 
 ---
 
-## Phase 2: Teams & Matchups
+## Phase 2: Teams & Matchups ✅ Complete
 
 ### Done
-- Nothing yet
+- [x] `TeamService` — CRUD, account assignment, commission stats, audit logging
+- [x] `MatchmakingService` — manual and auto-balanced team pair creation, activate/deactivate
+- [x] `AccountService` — balance management (bcmath precision), auto-pause on low balance, `AccountLowBalance` event
+- [x] API Resources — `TeamResource`, `AccountResource`, `MatchupResource` + collections
+- [x] REST API v1 endpoints (teams, matchups, accounts) with Form Requests + controllers + routes
+- [x] Feature tests — `TeamApiTest`, `MatchupApiTest`, `AccountApiTest` (47 tests, 149 assertions)
 
 ### Remaining
-- [ ] `TeamService` — CRUD, account assignment, commission stats
-- [ ] `MatchmakingService` — manual and auto-balanced team pair creation
-- [ ] `AccountService` — balance management, auto-pause on low balance
-- [ ] REST API v1 endpoints (teams, matchups, accounts) with Form Requests
 - [ ] Filament admin basics
 
 ---

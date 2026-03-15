@@ -30,6 +30,11 @@ class TeamFactory extends Factory
         return $this->state(['role' => TeamRole::Counter]);
     }
 
+    public function active(): static
+    {
+        return $this->state(['status' => TeamStatus::Active]);
+    }
+
     public function inactive(): static
     {
         return $this->state(['status' => TeamStatus::Inactive]);
