@@ -1,6 +1,6 @@
 # BetWise API — Backend Implementation Plan
 
-**Last Updated:** 2026-03-20
+**Last Updated:** 2026-03-15
 **Stack:** Laravel 12, PHP 8.4, PostgreSQL 16, Redis 7, Reverb
 **Repo:** `betwise-api/`
 
@@ -8,7 +8,7 @@
 
 ## Current Status
 
-Phase 1 (Foundation) is complete. Phase 2 is next.
+Phases 1, 2, and 3 are complete. Phase 4 (Allocation Engine) is next.
 
 ---
 
@@ -50,19 +50,19 @@ Phase 1 (Foundation) is complete. Phase 2 is next.
 
 ---
 
-## Phase 3: IP Management ⭐ High Priority
+## Phase 3: IP Management ✅ Complete
 
 *Must complete before allocation — prevents provider detection.*
 
 ### Done
-- Nothing yet
+- [x] `IpConflictDetector` service — concurrent/cooldown/hourly-limit/team-uniqueness rules per provider, audit logging
+- [x] `ProxyPoolManager` service — health-score weighted selection, automatic rotation, `updateProxyHealth` with status transitions
+- [x] `ip_conflict_rules` per-provider configuration (CRUD API)
+- [x] API endpoints: `POST /v1/ip-conflicts/check`, `POST /v1/devices/{device}/ip/rotate`, proxy CRUD, conflict-rule CRUD
+- [x] Feature tests — `IpConflictTest`, `ProxyTest`, `DeviceIpTest`, `IpConflictRuleTest` (41 tests, 134 assertions)
 
 ### Remaining
-- [ ] `IpConflictDetector` service — concurrent/cooldown/limit rules per provider
-- [ ] `ProxyPoolManager` service — health scoring, automatic rotation
-- [ ] `ip_conflict_rules` per-provider configuration
-- [ ] API endpoints: conflict check, proxy rotation
-- [ ] Admin dashboard: IP status, conflict log, proxy health
+- [ ] Admin dashboard: IP status, conflict log, proxy health (deferred to Phase 7)
 
 ---
 
@@ -72,12 +72,24 @@ Phase 1 (Foundation) is complete. Phase 2 is next.
 - Nothing yet
 
 ### Remaining
-- [ ] `AllocationEngine` — commission-weighted, monotonic, ±15% randomized, capital-respecting
-- [ ] `SeededRandom` — reproducible allocations from round seed
-- [ ] Capital locking with atomic DB transactions
-- [ ] `ProcessAllocation` queue job (idempotent)
+- [ ] `AllocationEngine` — 5-step algorithm: normalize commission weights → base allocations → ±15% randomization → enforce monotonicity → normalize to total capital
+- [ ] `SeededRandom` — reproducible uniform distribution from round seed string
+- [ ] Capital locking with atomic DB transactions (`capitals.locked` column, `InsufficientFundsError`)
+- [ ] `ProcessAllocation` queue job (idempotent, `ShouldQueue`)
 - [ ] Performance target: <500ms for 100 accounts
-- [ ] 95%+ test coverage on algorithm
+- [ ] 95%+ test coverage on allocation algorithm (higher bar than standard 80%)
+
+### Open Questions / Blockers
+
+1. **SeededRandom implementation** — PHP has no portable seeded float distribution. `mt_srand` + `mt_rand` output varies across PHP versions/platforms. Options: (a) hash the seed string to derive deterministic offsets via a pure-PHP LCG, (b) use a composer package like `paragonie/random_compat` or a custom Mersenne Twister. Needs a decision before implementation.
+
+2. **Bcmath vs float arithmetic** — `AccountService` uses `bcmath` strings for balance precision, but the allocation algorithm uses float multiplication and `round(..., 2)`. Need to decide: convert allocation entirely to bcmath, or accept float arithmetic with rounding-correction on the final step.
+
+3. **Rounding correction** — `round(amount * scale, 2)` across N accounts will produce a total that differs from `total_capital` by ±$0.01 per account due to cumulative rounding. The design's $0.10 tolerance (`AllocationError`) covers small N, but 100 accounts could exceed it. A "last-allocation correction" (assign the remainder to the final account) is likely needed.
+
+4. **`ProcessAllocation` idempotency key** — The `allocations` table needs a unique constraint or status column to detect already-processed jobs. Confirm the schema supports this (e.g., `status` enum or a unique `(round_id, account_id)` index).
+
+5. **Capital model `locked` column** — Verify `capitals` table has a `locked` numeric column before implementing `lock_capital`. The schema doc lists `balance` and `locked_amount` — confirm the exact column name.
 
 ---
 
