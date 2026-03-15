@@ -9,7 +9,10 @@ RUN apk add --no-cache \
     unzip \
     oniguruma-dev \
     nodejs \
-    npm
+    npm \
+    autoconf \
+    g++ \
+    make
 
 # Install PHP extensions
 RUN docker-php-ext-install \
@@ -21,6 +24,9 @@ RUN docker-php-ext-install \
     bcmath \
     gd \
     xml
+
+# Install Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

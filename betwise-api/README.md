@@ -39,19 +39,21 @@ The app will be available at `http://localhost:8080`.
 
 ## Containers
 
-| Name | Description | External Port |
-|---|---|---|
-| `bw-app` | PHP 8.4-FPM | — |
-| `bw-nginx` | Nginx web server | `8080` |
-| `bw-reverb` | Laravel Reverb WebSocket server | `8081` |
-| `bw-queue` | Queue worker | — |
-| `bw-db` | MariaDB 11 database | `3306` |
-| `bw-redis` | Redis cache & queue backend | `6379` |
-| `bw-adminer` | Adminer database UI | `8082` |
+| Name | Image | External Port | Purpose |
+|---|---|---|---|
+| `bw-app` | `betwise-app` | — | PHP 8.4-FPM process manager. Executes the Laravel application and serves responses to Nginx via FastCGI. Does not accept direct external traffic. |
+| `bw-nginx` | `nginx:alpine` | `8080` | Web server and reverse proxy. Receives all HTTP requests and forwards PHP files to `bw-app` via FastCGI. Entry point for the application. |
+| `bw-horizon` | `betwise-horizon` | — | Runs `php artisan horizon`, which manages and auto-scales all queue workers. Processes background jobs (broadcasting events, sending notifications, etc.) and exposes the Horizon dashboard at `/horizon`. |
+| `bw-reverb` | `betwise-reverb` | `8081` | Laravel Reverb WebSocket server. Maintains persistent connections with browser clients and pushes real-time broadcast events to them. |
+| `bw-db` | `mariadb:11` | `3306` | MariaDB 11 relational database. Primary data store for all application models. |
+| `bw-redis` | `redis:alpine` | `6379` | Redis in-memory store. Used as the queue backend (jobs dispatched here are picked up by `bw-horizon`), cache store, and session store. |
+| `bw-adminer` | `adminer:latest` | `8082` | Lightweight web-based database UI. Allows browsing and querying the database directly via browser. |
+
+> **Note:** `bw-horizon` replaces a standalone queue worker — do not run `php artisan queue:work` alongside it, as both would compete to process the same jobs.
 
 ## Real-time (Reverb)
 
-The `bw-reverb` and `bw-queue` containers start automatically with `docker compose up`.
+The `bw-reverb` and `bw-horizon` containers start automatically with `docker compose up`.
 
 Reverb uses two separate sets of env vars because PHP (inside Docker) and the browser (outside Docker) reach Reverb through different addresses:
 
@@ -120,11 +122,11 @@ REVERB_PORT=8080
 ```
 Confirm by checking the Laravel log for: `cURL error 7: Failed to connect to localhost port ...`
 
-**3. Ensure the queue worker is running:**
+**3. Ensure Horizon is running:**
 `ShouldBroadcast` events are dispatched via the queue — if no worker is running they will be queued but never sent.
 ```bash
-docker compose ps   # bw-queue should be Up
-docker compose up -d queue   # start it if missing
+docker compose ps   # bw-horizon should be Up
+docker compose up -d horizon   # start it if missing
 ```
 
 ---

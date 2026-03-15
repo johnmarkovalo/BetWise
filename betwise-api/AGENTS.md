@@ -11,6 +11,7 @@ This application is a Laravel application and its main Laravel ecosystems packag
 
 - php - 8.4.18
 - laravel/framework (LARAVEL) - v12
+- laravel/horizon (HORIZON) - v5
 - laravel/prompts (PROMPTS) - v0
 - laravel/reverb (REVERB) - v1
 - laravel/boost (BOOST) - v2
@@ -19,6 +20,7 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
 - phpunit/phpunit (PHPUNIT) - v11
+- laravel-echo (ECHO) - v2
 - tailwindcss (TAILWINDCSS) - v4
 
 ## Conventions
