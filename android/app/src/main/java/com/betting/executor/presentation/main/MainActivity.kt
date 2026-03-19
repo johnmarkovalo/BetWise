@@ -18,6 +18,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()
+    private var tapCount = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,30 +36,94 @@ class MainActivity : AppCompatActivity() {
             openAccessibilitySettings()
         }
 
+        binding.btnConnect.setOnClickListener {
+            val serverUrl = binding.etServerUrl.text.toString()
+            if (serverUrl.isNotBlank()) {
+                viewModel.connectWebSocket(serverUrl)
+                addLog("Connecting to $serverUrl")
+            }
+        }
+
+        binding.btnSyncTime.setOnClickListener {
+            val baseUrl = binding.etTimeSyncUrl.text.toString()
+            if (baseUrl.isNotBlank()) {
+                viewModel.syncTime(baseUrl)
+                addLog("Time sync requested: $baseUrl")
+            }
+        }
+
         binding.btnTestTouch.setOnClickListener {
             viewModel.testRandomTouch()
             addLog("Test touch button clicked")
         }
+
+        binding.btnTestFindAndTap.setOnClickListener {
+            // Get Target Button 1's actual screen position and tap its center
+            val location = IntArray(2)
+            binding.btnTarget1.getLocationOnScreen(location)
+            val centerX = location[0] + binding.btnTarget1.width / 2f
+            val centerY = location[1] + binding.btnTarget1.height / 2f
+            val isVisible = binding.btnTarget1.isShown
+            addLog("Target1 pos=(${location[0]},${location[1]}) size=${binding.btnTarget1.width}x${binding.btnTarget1.height} visible=$isVisible")
+            addLog("Tapping center at (${centerX.toInt()}, ${centerY.toInt()})")
+            viewModel.tapAtCoordinates(centerX, centerY, "Target Button 1")
+        }
+
+        // Target buttons — these are tap targets for the coordinate test
+        binding.btnTarget1.setOnClickListener {
+            tapCount++
+            binding.tvLastTapped.text = "Last tapped: Target Button 1"
+            updateTapCount()
+            addLog("Target Button 1 tapped by gesture")
+        }
+
+        binding.btnTarget2.setOnClickListener {
+            tapCount++
+            binding.tvLastTapped.text = "Last tapped: Target Button 2"
+            updateTapCount()
+            addLog("Target Button 2 tapped by gesture")
+        }
+
+        binding.btnTarget3.setOnClickListener {
+            tapCount++
+            binding.tvLastTapped.text = "Last tapped: Target Button 3"
+            updateTapCount()
+            addLog("Target Button 3 tapped by gesture")
+        }
+
+        binding.btnResetCounter.setOnClickListener {
+            tapCount = 0
+            binding.tvLastTapped.text = "Last tapped: None"
+            updateTapCount()
+            addLog("Tap counter reset")
+        }
+    }
+
+    private fun updateTapCount() {
+        binding.tvTapCount.text = "Tap Count: $tapCount"
     }
 
     private fun observeViewModel() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // Observe service status
                 launch {
                     viewModel.serviceStatus.collect { isRunning ->
                         updateServiceStatus(isRunning)
                     }
                 }
 
-                // Observe connection status
                 launch {
                     viewModel.connectionStatus.collect { status ->
                         updateConnectionStatus(status)
                     }
                 }
 
-                // Observe logs
+                launch {
+                    viewModel.timeSyncStatus.collect { status ->
+                        updateTimeSyncStatus(status)
+                    }
+                }
+
                 launch {
                     viewModel.logs.collect { log ->
                         if (log.isNotEmpty()) {
@@ -67,10 +132,10 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                // Observe test button state
                 launch {
                     viewModel.testButtonEnabled.collect { enabled ->
                         binding.btnTestTouch.isEnabled = enabled
+                        binding.btnTestFindAndTap.isEnabled = enabled
                     }
                 }
             }
@@ -89,6 +154,25 @@ class MainActivity : AppCompatActivity() {
         binding.btnEnableService.isEnabled = !isRunning
     }
 
+    private fun updateTimeSyncStatus(status: String) {
+        binding.tvTimeSyncStatus.text = status
+        val color = when {
+            status.startsWith("Offset:") -> getColor(android.R.color.holo_green_dark)
+            status == "Syncing..." -> getColor(android.R.color.holo_orange_dark)
+            status == "Sync failed" -> getColor(android.R.color.holo_red_dark)
+            else -> getColor(android.R.color.darker_gray)
+        }
+        binding.tvTimeSyncStatus.setTextColor(color)
+
+        // Update server time display
+        if (status.startsWith("Offset:")) {
+            val serverTime = viewModel.getServerTime()
+            val formatted = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.getDefault())
+                .format(java.util.Date(serverTime))
+            binding.tvServerTime.text = formatted
+        }
+    }
+
     private fun updateConnectionStatus(status: String) {
         binding.tvConnectionStatus.text = status
         binding.tvConnectionStatus.setTextColor(
@@ -105,7 +189,6 @@ class MainActivity : AppCompatActivity() {
             .format(java.util.Date())
         binding.tvLogs.append("[$timestamp] $message\n")
 
-        // Auto-scroll to bottom
         binding.tvLogs.post {
             binding.scrollLogs.fullScroll(android.view.View.FOCUS_DOWN)
         }

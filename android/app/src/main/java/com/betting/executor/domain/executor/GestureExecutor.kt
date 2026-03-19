@@ -4,6 +4,8 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.Point
+import android.os.Handler
+import android.os.Looper
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import kotlin.coroutines.resume
@@ -55,7 +57,7 @@ class GestureExecutor(private val service: AccessibilityService) {
                 }
             }
 
-            val dispatched = service.dispatchGesture(gesture, callback, null)
+            val dispatched = service.dispatchGesture(gesture, callback, Handler(Looper.getMainLooper()))
             if (!dispatched) {
                 Timber.e("Failed to dispatch gesture at (%.0f, %.0f)", x, y)
                 if (continuation.isActive) {

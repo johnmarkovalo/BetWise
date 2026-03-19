@@ -18,3 +18,4 @@ Automated betting execution engine using AccessibilityService.
 - **OkHttp** for WebSocket communication
 - **Moshi** for JSON serialization
 - **Timber** for logging
+ 
