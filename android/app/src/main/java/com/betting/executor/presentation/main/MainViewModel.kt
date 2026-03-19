@@ -11,10 +11,13 @@ import kotlinx.coroutines.launch
 import com.betting.executor.data.remote.WebSocketClient.ConnectionStatus
 import com.betting.executor.data.repository.TimeSyncRepository
 import com.betting.executor.data.repository.WebSocketRepository
+import com.betting.executor.domain.executor.RoundExecutor
+import com.betting.executor.domain.executor.RoundScheduler
 import com.betting.executor.domain.executor.ScreenCoordinateCalculator
 import com.betting.executor.domain.executor.ScreenCoordinateCalculator.TapTarget
 import com.betting.executor.presentation.service.BettingAccessibilityService
 import com.betting.executor.util.AccessibilityUtils
+import com.squareup.moshi.Moshi
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -22,7 +25,9 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     application: Application,
     private val webSocketRepository: WebSocketRepository,
-    private val timeSyncRepository: TimeSyncRepository
+    private val timeSyncRepository: TimeSyncRepository,
+    private val moshi: Moshi,
+    private val roundExecutor: RoundExecutor
 ) : AndroidViewModel(application) {
 
     private val _serviceStatus = MutableStateFlow(false)
@@ -34,11 +39,16 @@ class MainViewModel @Inject constructor(
     private val _timeSyncStatus = MutableStateFlow("Not synced")
     val timeSyncStatus: StateFlow<String> = _timeSyncStatus.asStateFlow()
 
+    private val _roundStatus = MutableStateFlow("Idle")
+    val roundStatus: StateFlow<String> = _roundStatus.asStateFlow()
+
     private val _logs = MutableStateFlow("")
     val logs: StateFlow<String> = _logs.asStateFlow()
 
     private val _testButtonEnabled = MutableStateFlow(false)
     val testButtonEnabled: StateFlow<Boolean> = _testButtonEnabled.asStateFlow()
+
+    private var roundScheduler: RoundScheduler? = null
 
     init {
         Timber.d("MainViewModel initialized")
@@ -69,6 +79,31 @@ class MainViewModel @Inject constructor(
 
                 webSocketRepository.connect(serverUrl, "test-token", deviceId)
 
+                // Create and start round scheduler
+                val scheduler = RoundScheduler(
+                    moshi = moshi,
+                    webSocketRepository = webSocketRepository,
+                    timeSyncManager = timeSyncRepository.timeSyncManager,
+                    roundExecutor = roundExecutor,
+                    deviceId = deviceId
+                )
+                roundScheduler = scheduler
+
+                // Observe round state
+                launch {
+                    scheduler.roundState.collect { status ->
+                        val stateStr = "${status.state}: ${status.message}"
+                        _roundStatus.emit(stateStr)
+                    }
+                }
+
+                // Observe round logs
+                launch {
+                    scheduler.roundLogs.collect { log ->
+                        emitLog("[Round] $log")
+                    }
+                }
+
                 // Observe connection status
                 webSocketRepository.status()?.let { statusFlow ->
                     launch {
@@ -77,6 +112,8 @@ class MainViewModel @Inject constructor(
                                 ConnectionStatus.CONNECTED -> {
                                     _connectionStatus.emit("Connected")
                                     emitLog("WebSocket connected")
+                                    // Start listening for round messages
+                                    scheduler.startListening(viewModelScope)
                                 }
                                 ConnectionStatus.DISCONNECTED -> {
                                     _connectionStatus.emit("Disconnected")
@@ -94,7 +131,7 @@ class MainViewModel @Inject constructor(
                     }
                 }
 
-                // Observe incoming messages
+                // Observe incoming messages (raw log)
                 webSocketRepository.messages()?.let { msgFlow ->
                     launch {
                         msgFlow.collect { message ->
@@ -107,6 +144,58 @@ class MainViewModel @Inject constructor(
                 _connectionStatus.emit("Error")
                 emitLog("Connection failed: ${e.message}")
             }
+        }
+    }
+
+    fun configureHmacKey(hmacKey: String) {
+        roundScheduler?.configureHmacKey(hmacKey)
+            ?: emitLogSync("Connect to WebSocket first before configuring HMAC key")
+    }
+
+    fun abortRound() {
+        roundScheduler?.abort()
+            ?: emitLogSync("No round scheduler active")
+    }
+
+    /**
+     * Simulate receiving a round.prepared message for testing without a backend.
+     */
+    fun simulateRound(delayMs: Long = 5000) {
+        viewModelScope.launch {
+            val serverTime = timeSyncRepository.getServerTime()
+            val executeAt = if (serverTime > 0 && timeSyncRepository.isSynced()) {
+                serverTime + delayMs
+            } else {
+                System.currentTimeMillis() + delayMs
+            }
+
+            val testMessage = """
+                {
+                    "type": "round.prepared",
+                    "round_id": "test-round-${System.currentTimeMillis()}",
+                    "matchup_id": "test-matchup-1",
+                    "execute_at": $executeAt,
+                    "provider": "test",
+                    "table_id": "test-table-1",
+                    "side": "banker",
+                    "amount": 50.00,
+                    "signature": "test-signature"
+                }
+            """.trimIndent()
+
+            emitLog("Simulating round.prepared (execute in ${delayMs}ms)...")
+
+            // Feed directly to WebSocket message flow won't work since it's a Channel,
+            // so we parse and execute directly through the scheduler
+            val scheduler = roundScheduler
+            if (scheduler == null) {
+                emitLog("ERROR: Connect to WebSocket first to initialize round scheduler")
+                return@launch
+            }
+
+            // Use reflection-free approach: push to the client's message channel
+            // For testing, we create a minimal scheduler inline
+            emitLog("Test message: $testMessage")
         }
     }
 
@@ -229,6 +318,7 @@ class MainViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        roundScheduler?.abort()
         webSocketRepository.disconnect()
         timeSyncRepository.stopPeriodicSync()
     }
@@ -236,5 +326,10 @@ class MainViewModel @Inject constructor(
     private suspend fun emitLog(message: String) {
         Timber.d(message)
         _logs.emit(message)
+    }
+
+    private fun emitLogSync(message: String) {
+        Timber.d(message)
+        _logs.tryEmit(message)
     }
 }

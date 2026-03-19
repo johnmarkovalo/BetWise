@@ -1,6 +1,7 @@
 package com.betting.executor.data.repository
 
 import com.betting.executor.data.model.ClientMessage
+import com.betting.executor.data.model.RoundResultMessage
 import com.betting.executor.data.remote.WebSocketClient
 import com.betting.executor.data.remote.WebSocketClient.ConnectionStatus
 import com.squareup.moshi.Moshi
@@ -16,6 +17,8 @@ class WebSocketRepository @Inject constructor(
 
     private var client: WebSocketClient? = null
     private var currentDeviceId: String? = null
+
+    private val roundResultAdapter by lazy { moshi.adapter(RoundResultMessage::class.java) }
 
     fun connect(serverUrl: String, authToken: String, deviceId: String) {
         disconnect()
@@ -35,6 +38,8 @@ class WebSocketRepository @Inject constructor(
         Timber.d("WebSocketRepository: disconnected")
     }
 
+    fun getDeviceId(): String? = currentDeviceId
+
     fun sendHeartbeat(deviceId: String): Boolean {
         val message = ClientMessage(
             type = "heartbeat",
@@ -44,13 +49,23 @@ class WebSocketRepository @Inject constructor(
         return client?.send(message) ?: false
     }
 
-    fun sendAcknowledgment(roundId: String, deviceId: String): Boolean {
+    fun sendRoundAcknowledgment(roundId: String, deviceId: String): Boolean {
         val message = ClientMessage(
-            type = "acknowledgment",
+            type = "round.acknowledged",
             deviceId = deviceId,
-            payload = mapOf("roundId" to roundId)
+            payload = mapOf(
+                "round_id" to roundId,
+                "timestamp" to System.currentTimeMillis()
+            )
         )
         return client?.send(message) ?: false
+    }
+
+    fun sendRoundResult(result: RoundResultMessage): Boolean {
+        val json = roundResultAdapter.toJson(result)
+        Timber.d("Sending round result: %s", json)
+        val ws = client ?: return false
+        return ws.sendRaw(json)
     }
 
     fun messages(): Flow<String>? = client?.messages()

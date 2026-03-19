@@ -1,6 +1,7 @@
 package com.betting.executor.di
 
 import com.betting.executor.data.remote.TimeSyncApi
+import com.betting.executor.domain.executor.RoundExecutor
 import com.betting.executor.domain.executor.TimeSyncManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -44,5 +45,11 @@ object AppModule {
     @Singleton
     fun provideTimeSyncManager(timeSyncApi: TimeSyncApi): TimeSyncManager {
         return TimeSyncManager(timeSyncApi)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRoundExecutor(): RoundExecutor {
+        return RoundExecutor()
     }
 }

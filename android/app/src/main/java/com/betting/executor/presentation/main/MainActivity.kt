@@ -97,6 +97,11 @@ class MainActivity : AppCompatActivity() {
             updateTapCount()
             addLog("Tap counter reset")
         }
+
+        binding.btnAbortRound.setOnClickListener {
+            viewModel.abortRound()
+            addLog("Abort round requested")
+        }
     }
 
     private fun updateTapCount() {
@@ -121,6 +126,12 @@ class MainActivity : AppCompatActivity() {
                 launch {
                     viewModel.timeSyncStatus.collect { status ->
                         updateTimeSyncStatus(status)
+                    }
+                }
+
+                launch {
+                    viewModel.roundStatus.collect { status ->
+                        updateRoundStatus(status)
                     }
                 }
 
@@ -171,6 +182,18 @@ class MainActivity : AppCompatActivity() {
                 .format(java.util.Date(serverTime))
             binding.tvServerTime.text = formatted
         }
+    }
+
+    private fun updateRoundStatus(status: String) {
+        binding.tvRoundStatus.text = status
+        val color = when {
+            status.startsWith("COMPLETED") -> getColor(android.R.color.holo_green_dark)
+            status.startsWith("EXECUTING") -> getColor(android.R.color.holo_blue_dark)
+            status.startsWith("WAITING") || status.startsWith("ACKNOWLEDGED") -> getColor(android.R.color.holo_orange_dark)
+            status.startsWith("FAILED") || status.startsWith("ABORTED") -> getColor(android.R.color.holo_red_dark)
+            else -> getColor(android.R.color.darker_gray)
+        }
+        binding.tvRoundStatus.setTextColor(color)
     }
 
     private fun updateConnectionStatus(status: String) {

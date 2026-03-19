@@ -2,9 +2,11 @@ package com.betting.executor.data.remote
 
 import com.betting.executor.data.model.ClientMessage
 import com.squareup.moshi.Moshi
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -32,14 +34,14 @@ class WebSocketClient(
 
     private var webSocket: WebSocket? = null
 
-    private val messageChannel = Channel<String>(Channel.UNLIMITED)
-    private val statusChannel = Channel<ConnectionStatus>(Channel.CONFLATED)
+    private val messageFlow = MutableSharedFlow<String>(extraBufferCapacity = 64)
+    private val statusFlow = MutableStateFlow(ConnectionStatus.DISCONNECTED)
 
     private val clientMessageAdapter = moshi.adapter(ClientMessage::class.java)
 
     fun connect() {
         Timber.d("Connecting to WebSocket: %s", serverUrl)
-        statusChannel.trySend(ConnectionStatus.CONNECTING)
+        statusFlow.tryEmit(ConnectionStatus.CONNECTING)
 
         val request = Request.Builder()
             .url(serverUrl)
@@ -49,28 +51,28 @@ class WebSocketClient(
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 Timber.d("WebSocket connected")
-                statusChannel.trySend(ConnectionStatus.CONNECTED)
+                statusFlow.tryEmit(ConnectionStatus.CONNECTED)
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
                 Timber.d("WebSocket message received: %s", text)
-                messageChannel.trySend(text)
+                messageFlow.tryEmit(text)
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                 Timber.d("WebSocket closing: code=%d reason=%s", code, reason)
                 webSocket.close(1000, null)
-                statusChannel.trySend(ConnectionStatus.DISCONNECTED)
+                statusFlow.tryEmit(ConnectionStatus.DISCONNECTED)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 Timber.d("WebSocket closed: code=%d reason=%s", code, reason)
-                statusChannel.trySend(ConnectionStatus.DISCONNECTED)
+                statusFlow.tryEmit(ConnectionStatus.DISCONNECTED)
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Timber.e(t, "WebSocket failure")
-                statusChannel.trySend(ConnectionStatus.ERROR)
+                statusFlow.tryEmit(ConnectionStatus.ERROR)
             }
         })
     }
@@ -87,7 +89,12 @@ class WebSocketClient(
         return webSocket?.send(json) ?: false
     }
 
-    fun messages(): Flow<String> = messageChannel.receiveAsFlow()
+    fun sendRaw(json: String): Boolean {
+        Timber.d("Sending raw WebSocket message: %s", json)
+        return webSocket?.send(json) ?: false
+    }
 
-    fun status(): Flow<ConnectionStatus> = statusChannel.receiveAsFlow()
+    fun messages(): Flow<String> = messageFlow.asSharedFlow()
+
+    fun status(): Flow<ConnectionStatus> = statusFlow.asStateFlow()
 }
