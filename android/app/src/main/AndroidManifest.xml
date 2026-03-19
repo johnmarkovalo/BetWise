@@ -30,6 +30,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".presentation.demo.DemoActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BettingExecutor"
+            android:configChanges="orientation|screenSize" />
+
         <service
             android:name=".presentation.service.BettingAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"

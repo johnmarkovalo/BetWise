@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#1a1a2e">
+
+    <!-- Control Panel -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardElevation="6dp"
+        app:cardCornerRadius="0dp"
+        app:cardBackgroundColor="#222244"
+        app:contentPadding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvDemoServiceStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Accessibility Service: checking..."
+                android:textColor="@android:color/darker_gray"
+                android:textSize="12sp"
+                android:fontFamily="monospace" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEnableDemoService"
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:text="Enable Accessibility Service"
+                android:textSize="12sp"
+                android:visibility="gone"
+                android:layout_marginTop="4dp"
+                style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStartBot"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="Start Auto-Bot"
+                    android:textSize="13sp"
+                    android:enabled="false"
+                    android:layout_marginEnd="6dp"
+                    app:backgroundTint="#6c5ce7" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSingleTap"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="Single Tap"
+                    android:textSize="13sp"
+                    android:enabled="false"
+                    android:layout_marginStart="6dp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvDemoStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Tap a button to start"
+                android:textColor="#aaaaaa"
+                android:textSize="13sp"
+                android:layout_marginTop="6dp"
+                android:fontFamily="monospace" />
+
+            <TextView
+                android:id="@+id/tvDemoStats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Bot: 0 pops / 0 attempts"
+                android:textColor="#ffd700"
+                android:textSize="12sp"
+                android:layout_marginTop="2dp"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- WebView Game Area -->
+    <WebView
+        android:id="@+id/webView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+</LinearLayout>

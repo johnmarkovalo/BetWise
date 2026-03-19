@@ -3,6 +3,7 @@ package com.betting.executor.presentation.main
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import com.betting.executor.presentation.demo.DemoActivity
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
@@ -32,6 +33,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
+        binding.btnLaunchDemo.setOnClickListener {
+            startActivity(Intent(this, DemoActivity::class.java))
+        }
+
         binding.btnEnableService.setOnClickListener {
             openAccessibilitySettings()
         }

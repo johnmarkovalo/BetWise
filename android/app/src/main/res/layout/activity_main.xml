@@ -24,6 +24,49 @@
             android:textStyle="bold"
             android:layout_marginBottom="16dp" />
 
+        <!-- Demo Launch Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardElevation="6dp"
+            app:cardCornerRadius="12dp"
+            app:contentPadding="16dp"
+            app:cardBackgroundColor="#6c5ce7">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Balloon Pop Demo"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WebView game + auto-tap bot via AccessibilityService"
+                    android:textSize="12sp"
+                    android:textColor="#ddddff"
+                    android:layout_marginBottom="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLaunchDemo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Launch Demo"
+                    android:textColor="#6c5ce7"
+                    app:backgroundTint="@android:color/white" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Service Status Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
