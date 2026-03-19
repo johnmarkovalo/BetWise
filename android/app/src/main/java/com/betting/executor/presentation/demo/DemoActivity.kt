@@ -399,7 +399,7 @@ class DemoActivity : AppCompatActivity() {
 
         Timber.d("parseBalloons: webViewPos=(%d,%d) scale=%.2f", location[0], location[1], scale)
 
-        val regex = Regex("""\{[^}]+}""")
+        val regex = Regex("""\{[^\}]+\}""")
         for (match in regex.findAll(json)) {
             val obj = match.value
             val id = extractInt(obj, "id") ?: continue
