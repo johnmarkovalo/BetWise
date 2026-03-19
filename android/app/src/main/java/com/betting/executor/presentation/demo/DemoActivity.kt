@@ -31,7 +31,7 @@ import timber.log.Timber
  * This demonstrates the full execution pipeline:
  * 1. Game runs in WebView (simulates a betting provider website)
  * 2. Android queries balloon positions via JS bridge
- * 3. RoundExecutor-style coordinate tapping pops balloons
+ * 3. GestureExecutor injects real touch events to pop balloons
  * 4. Results are tracked and displayed
  *
  * No backend or WebSocket needed — everything runs locally.
@@ -48,6 +48,7 @@ class DemoActivity : AppCompatActivity() {
     private var isAutoBotRunning = false
     private var botPops = 0
     private var botAttempts = 0
+    private var gameReady = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,15 +65,26 @@ class DemoActivity : AppCompatActivity() {
             javaScriptEnabled = true
             domStorageEnabled = true
             setSupportZoom(false)
+            useWideViewPort = false
+            loadWithOverviewMode = false
         }
         webView.webChromeClient = WebChromeClient()
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                gameReady = true
+                Timber.d("Game page loaded, WebView size: %dx%d, scale: %.2f",
+                    webView.width, webView.height, webView.scale)
+                setBotStatus("Game loaded. Ready!")
+            }
+        }
         webView.addJavascriptInterface(GameBridge(), "GameBridge")
         webView.loadUrl("file:///android_asset/balloon_game.html")
 
         // Buttons
         findViewById<View>(R.id.btnStartBot).setOnClickListener { toggleAutoBot() }
         findViewById<View>(R.id.btnSingleTap).setOnClickListener { singleBotTap() }
+        findViewById<View>(R.id.btnDebugCoords).setOnClickListener { debugCoordinates() }
         findViewById<View>(R.id.btnEnableDemoService).setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
@@ -96,7 +108,7 @@ class DemoActivity : AppCompatActivity() {
             findViewById<View>(R.id.btnStartBot).isEnabled = true
             findViewById<View>(R.id.btnSingleTap).isEnabled = true
         } else {
-            tvServiceStatus.text = "Accessibility Service: NOT ACTIVE"
+            tvServiceStatus.text = "Accessibility Service: NOT ACTIVE — enable to use bot"
             tvServiceStatus.setTextColor(getColor(android.R.color.holo_red_dark))
             findViewById<View>(R.id.btnEnableDemoService).visibility = View.VISIBLE
             findViewById<View>(R.id.btnStartBot).isEnabled = false
@@ -109,10 +121,58 @@ class DemoActivity : AppCompatActivity() {
     }
 
     /**
+     * Debug: log coordinate mapping info so we can verify the math.
+     */
+    private fun debugCoordinates() {
+        val location = IntArray(2)
+        webView.getLocationOnScreen(location)
+        val density = resources.displayMetrics.density
+        val scale = webView.scale
+
+        val info = "WebView: pos=(${location[0]},${location[1]}) " +
+                "size=${webView.width}x${webView.height} " +
+                "density=$density scale=$scale"
+        Timber.d(info)
+        setBotStatus(info)
+
+        // Query a balloon to see raw JS values + coordinate info
+        webView.evaluateJavascript(
+            """(function() {
+                try {
+                    var hasFn = typeof window.getActiveBalloons === 'function';
+                    if (!hasFn) return JSON.stringify({error: 'getActiveBalloons not defined'});
+                    var b = window.getActiveBalloons();
+                    if (b.length > 0) {
+                        return JSON.stringify({
+                            count: b.length,
+                            first: b[0],
+                            dpr: window.devicePixelRatio,
+                            vw: window.innerWidth,
+                            vh: window.innerHeight
+                        });
+                    }
+                    return JSON.stringify({count: 0, dpr: window.devicePixelRatio});
+                } catch(e) {
+                    return JSON.stringify({error: e.message});
+                }
+            })()"""
+        ) { result ->
+            Timber.d("Debug JS result: %s", result)
+            val clean = unescapeJsResult(result ?: "null")
+            tvStats.text = "JS: $clean"
+        }
+    }
+
+    /**
      * Query the WebView for active balloon positions via JavaScript,
      * pick the best target, and tap it with GestureExecutor.
      */
     private fun singleBotTap() {
+        if (!gameReady) {
+            setBotStatus("Game still loading...")
+            return
+        }
+
         val executor = getGestureExecutor()
         if (executor == null) {
             Toast.makeText(this, "Enable Accessibility Service first", Toast.LENGTH_SHORT).show()
@@ -121,49 +181,34 @@ class DemoActivity : AppCompatActivity() {
 
         setBotStatus("Scanning for targets...")
 
-        // Query balloon positions from the game via JS
-        webView.evaluateJavascript("JSON.stringify(window.getActiveBalloons())") { result ->
-            if (result == null || result == "null" || result == "\"\"") {
-                setBotStatus("No balloons found")
-                return@evaluateJavascript
+        queryBalloonsFromJs { balloons ->
+            if (balloons.isEmpty()) {
+                setBotStatus("No active balloons")
+                return@queryBalloonsFromJs
             }
 
-            try {
-                // Parse balloon data
-                val json = result.trim('"').replace("\\\"", "\"").replace("\\\\", "\\")
-                val balloons = parseBalloons(json)
+            // Pick the best target: prefer gold, then lowest on screen (about to escape)
+            val target = balloons
+                .sortedWith(compareByDescending<BalloonInfo> { it.isGold }.thenByDescending { it.screenY })
+                .first()
 
-                if (balloons.isEmpty()) {
-                    setBotStatus("No active balloons")
-                    return@evaluateJavascript
+            val targetLabel = if (target.isGold) "GOLD balloon" else "${target.color} balloon"
+            setBotStatus("Target: $targetLabel at (${target.screenX.toInt()}, ${target.screenY.toInt()})")
+
+            lifecycleScope.launch {
+                botAttempts++
+                updateStats()
+
+                val tapResult = executor.performTapAt(target.screenX, target.screenY)
+
+                tapResult.onSuccess {
+                    botPops++
+                    setBotStatus("Popped $targetLabel!")
+                    updateStats()
+                }.onFailure { error ->
+                    setBotStatus("Tap failed: ${error.message}")
+                    updateStats()
                 }
-
-                // Pick the best target: prefer gold, then lowest on screen (about to escape)
-                val target = balloons
-                    .sortedWith(compareByDescending<BalloonInfo> { it.isGold }.thenByDescending { it.screenY })
-                    .first()
-
-                val targetLabel = if (target.isGold) "GOLD balloon" else "${target.color} balloon"
-                setBotStatus("Target: $targetLabel at (${target.screenX.toInt()}, ${target.screenY.toInt()})")
-
-                // Execute tap via AccessibilityService gesture injection
-                lifecycleScope.launch {
-                    botAttempts++
-                    val tapResult = executor.performTapAt(target.screenX, target.screenY)
-
-                    tapResult.onSuccess {
-                        botPops++
-                        setBotStatus("Popped $targetLabel!")
-                        updateStats()
-                    }.onFailure { error ->
-                        setBotStatus("Tap failed: ${error.message}")
-                        updateStats()
-                    }
-                }
-
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to parse balloon data")
-                setBotStatus("Parse error: ${e.message}")
             }
         }
     }
@@ -177,6 +222,11 @@ class DemoActivity : AppCompatActivity() {
     }
 
     private fun startAutoBot() {
+        if (!gameReady) {
+            Toast.makeText(this, "Wait for game to load", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val executor = getGestureExecutor()
         if (executor == null) {
             Toast.makeText(this, "Enable Accessibility Service first", Toast.LENGTH_SHORT).show()
@@ -195,11 +245,10 @@ class DemoActivity : AppCompatActivity() {
 
                 if (!isActive || !isAutoBotRunning) break
 
-                // Query and tap
                 queryAndTap(executor)
 
-                // Wait for tap to complete and balloon to animate
-                delay(200)
+                // Wait for gesture to complete
+                delay(150)
             }
         }
     }
@@ -213,23 +262,7 @@ class DemoActivity : AppCompatActivity() {
     }
 
     private suspend fun queryAndTap(executor: GestureExecutor) {
-        // Use suspendCancellableCoroutine to bridge the JS callback
-        val balloons = kotlinx.coroutines.suspendCancellableCoroutine<List<BalloonInfo>> { cont ->
-            runOnUiThread {
-                webView.evaluateJavascript("JSON.stringify(window.getActiveBalloons())") { result ->
-                    try {
-                        if (result == null || result == "null" || result == "\"\"") {
-                            cont.resume(emptyList()) {}
-                            return@evaluateJavascript
-                        }
-                        val json = result.trim('"').replace("\\\"", "\"").replace("\\\\", "\\")
-                        cont.resume(parseBalloons(json)) {}
-                    } catch (e: Exception) {
-                        cont.resume(emptyList()) {}
-                    }
-                }
-            }
-        }
+        val balloons = queryBalloonsFromJsSuspend()
 
         if (balloons.isEmpty()) {
             runOnUiThread { setBotStatus("Scanning... no targets") }
@@ -261,36 +294,110 @@ class DemoActivity : AppCompatActivity() {
         }
     }
 
-    private fun setBotStatus(msg: String) {
-        tvStatus.text = msg
-        // Also update the WebView status bar
-        webView.evaluateJavascript("window.setBotStatus('$msg')", null)
-    }
+    /**
+     * Query balloon positions from the JS game.
+     * The JS returns CSS pixel coordinates via getBoundingClientRect().
+     * We need to convert these to absolute screen coordinates for GestureExecutor.
+     *
+     * Coordinate mapping:
+     * - JS getBoundingClientRect() returns positions relative to the WebView viewport in CSS pixels
+     * - WebView internally scales CSS pixels to Android view pixels by its current scale factor
+     * - We then offset by the WebView's position on screen
+     *
+     * screenX = webViewLeft + (cssX * webView.scale)
+     * screenY = webViewTop + (cssY * webView.scale)
+     */
+    private fun queryBalloonsFromJs(callback: (List<BalloonInfo>) -> Unit) {
+        // Use an IIFE to safely check if the function exists
+        val js = """(function() {
+            try {
+                if (typeof window.getActiveBalloons !== 'function') return '[]';
+                var arr = window.getActiveBalloons();
+                return JSON.stringify(arr || []);
+            } catch(e) {
+                return '{"error":"' + e.message + '"}';
+            }
+        })()"""
+        webView.evaluateJavascript(js) { result ->
+            try {
+                Timber.d("evaluateJavascript raw result: %s", result)
 
-    private fun updateStats() {
-        val accuracy = if (botAttempts > 0) (botPops * 100 / botAttempts) else 0
-        tvStats.text = "Bot: $botPops pops / $botAttempts attempts ($accuracy% accuracy)"
+                if (result == null || result == "null" || result == "\"\"" || result == "\"[]\"") {
+                    callback(emptyList())
+                    return@evaluateJavascript
+                }
+
+                // evaluateJavascript returns a JSON-encoded string.
+                // For JSON.stringify output, the result is a JSON string containing JSON,
+                // e.g.: "[{\"id\":0,\"color\":\"red\",...}]"
+                // We need to unwrap the outer JSON string encoding.
+                val json = unescapeJsResult(result)
+                Timber.d("Unescaped balloon JSON: %s", json)
+
+                if (json.isEmpty() || json == "[]") {
+                    callback(emptyList())
+                    return@evaluateJavascript
+                }
+
+                val balloons = parseBalloons(json)
+                Timber.d("Parsed %d balloons", balloons.size)
+                callback(balloons)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to parse balloon data from: %s", result)
+                callback(emptyList())
+            }
+        }
     }
 
     /**
-     * Simple JSON array parser for balloon data.
-     *
-     * The JS getBoundingClientRect() returns CSS pixels. The WebView maps these
-     * to physical screen pixels by multiplying by devicePixelRatio (density).
-     * We add the WebView's on-screen offset to get absolute screen coordinates
-     * that GestureExecutor can tap.
+     * Unescape the result from WebView.evaluateJavascript().
+     * The result is a JSON-encoded value. If the JS returned a string (from JSON.stringify),
+     * the result looks like: "[{\"id\":0,...}]" — a JSON string literal.
+     * We strip the outer quotes and unescape the contents.
      */
+    private fun unescapeJsResult(raw: String): String {
+        var s = raw
+        // Strip outer double quotes if present
+        if (s.startsWith("\"") && s.endsWith("\"")) {
+            s = s.substring(1, s.length - 1)
+        }
+        // Unescape JSON string escapes
+        s = s.replace("\\\"", "\"")
+            .replace("\\\\", "\\")
+            .replace("\\/", "/")
+            .replace("\\n", "\n")
+            .replace("\\r", "\r")
+            .replace("\\t", "\t")
+        return s
+    }
+
+    private suspend fun queryBalloonsFromJsSuspend(): List<BalloonInfo> {
+        return kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+            runOnUiThread {
+                queryBalloonsFromJs { balloons ->
+                    if (cont.isActive) {
+                        cont.resume(balloons) {}
+                    }
+                }
+            }
+        }
+    }
+
     private fun parseBalloons(json: String): List<BalloonInfo> {
         val balloons = mutableListOf<BalloonInfo>()
         if (!json.startsWith("[")) return balloons
 
-        val density = resources.displayMetrics.density
-
-        // WebView's position on screen (accounts for the control panel above it)
+        // Get WebView's position on screen
         val location = IntArray(2)
         webView.getLocationOnScreen(location)
-        val webViewLeft = location[0]
-        val webViewTop = location[1]
+        val webViewLeft = location[0].toFloat()
+        val webViewTop = location[1].toFloat()
+
+        // The WebView scale converts CSS pixels to Android view pixels.
+        // On most devices with viewport width=device-width, scale ≈ density.
+        val scale = webView.scale
+
+        Timber.d("parseBalloons: webViewPos=(%d,%d) scale=%.2f", location[0], location[1], scale)
 
         val regex = Regex("""\{[^}]+}""")
         for (match in regex.findAll(json)) {
@@ -301,9 +408,9 @@ class DemoActivity : AppCompatActivity() {
             val cssX = extractFloat(obj, "\"x\"") ?: continue
             val cssY = extractFloat(obj, "\"y\"") ?: continue
 
-            // CSS pixels → screen pixels: multiply by density, add WebView offset
-            val screenX = webViewLeft + (cssX * density)
-            val screenY = webViewTop + (cssY * density)
+            // CSS px → screen px: scale by WebView's zoom, then offset by WebView position
+            val screenX = webViewLeft + (cssX * scale)
+            val screenY = webViewTop + (cssY * scale)
 
             balloons.add(BalloonInfo(id, color, isGold, screenX, screenY))
         }
@@ -321,8 +428,20 @@ class DemoActivity : AppCompatActivity() {
     }
 
     private fun extractFloat(json: String, key: String): Float? {
-        val pattern = Regex("""$key\s*:\s*([0-9.]+)""")
+        val pattern = Regex("""$key\s*:\s*([\d.]+)""")
         return pattern.find(json)?.groupValues?.get(1)?.toFloatOrNull()
+    }
+
+    private fun setBotStatus(msg: String) {
+        tvStatus.text = msg
+        // Escape single quotes for JS string
+        val escaped = msg.replace("'", "\\'")
+        webView.evaluateJavascript("window.setBotStatus('$escaped')", null)
+    }
+
+    private fun updateStats() {
+        val accuracy = if (botAttempts > 0) (botPops * 100 / botAttempts) else 0
+        tvStats.text = "Bot: $botPops pops / $botAttempts attempts ($accuracy% accuracy)"
     }
 
     data class BalloonInfo(
@@ -333,9 +452,6 @@ class DemoActivity : AppCompatActivity() {
         val screenY: Float
     )
 
-    /**
-     * JavaScript interface for the game to communicate back to Android.
-     */
     inner class GameBridge {
         @JavascriptInterface
         fun onBalloonPopped(id: Int, score: Int, x: Float, y: Float) {
